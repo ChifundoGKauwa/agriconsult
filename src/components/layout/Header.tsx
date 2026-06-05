@@ -24,9 +24,11 @@ export default function Header() {
           <a className="hover:text-primary" href="/login">
             Login
           </a>
-          <Button size="sm" className="bg-accent text-primary hover:bg-tertiary">
-            Schedule Consultation
-          </Button>
+          <a href="/consulting">
+            <Button size="sm" className="bg-accent text-primary hover:bg-tertiary">
+              Schedule Consultation
+            </Button>
+          </a>
         </div>
       </Container>
     </header>
