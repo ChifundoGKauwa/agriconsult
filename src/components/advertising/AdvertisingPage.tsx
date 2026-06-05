@@ -24,8 +24,6 @@ import {
 } from "@/src/components/ui/card";
 import { Container } from "@/src/components/ui/container";
 import { auth, db } from "@/src/lib/firebase";
-import { openPayChanguCheckout, preloadPayChangu } from "@/src/lib/paychangu";
-
 const ADVERTISEMENTS_COLLECTION = "images";
 
 type Advertisement = {
@@ -118,7 +116,7 @@ export default function AdvertisingPage() {
     const unsubscribe = onAuthStateChanged(auth, setUser);
 
     // Pre-load PayChangu scripts so they're ready for click handlers
-    preloadPayChangu();
+  
 
     return unsubscribe;
   }, []);
@@ -150,10 +148,8 @@ export default function AdvertisingPage() {
   const marketplaceListings = useMemo(
     () =>
       advertisements.map((advertisement) => ({
-        id: advertisement.id,
         title: advertisement.title || `Advertisement`,
         subtitle: advertisement.description || "No description",
-        description: advertisement.description || "No description",
         price: advertisement.price || "Contact seller",
         image: advertisement.imageurl,
       })),
@@ -234,28 +230,33 @@ export default function AdvertisingPage() {
     }
   };
 
-  const makePayment = (item: {
-    id?: string;
-    title: string;
-    description?: string;
-    subtitle?: string;
-    price: string;
-  }) => {
-    openPayChanguCheckout(
-      {
-        id: item.id,
-        title: item.title,
-        description: item.description || item.subtitle,
-        price: item.price,
+  const makePayment = async (item: { title: string; price: string }) => {
+  try {
+    const response = await fetch("/api/payments", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
       },
-      { email: user?.email ?? undefined }
-    );
-  };
+      body: JSON.stringify({
+        title: item.title,
+        price: item.price,
+        email: user?.email,
+      }),
+    });
+
+    const data = await response.json();
+    window.location.href = data.checkout_url;
+  } catch (error) {
+    console.error("Payment failed:", error);
+  }
+};
 
   return (
     <div className="flex flex-col bg-neutral text-primary">
-      <section className="bg-white py-16">
-        <Container className="space-y-10">
+      {/* Hero + Upload + Filters */}
+      <section className="bg-white py-10">
+        <Container className="space-y-8">
+          {/* Header row */}
           <div className="flex flex-wrap items-start justify-between gap-6">
             <div className="space-y-3">
               <h1 className="text-3xl font-semibold">Featured Marketplace</h1>
@@ -274,17 +275,7 @@ export default function AdvertisingPage() {
                   size="sm"
                   className="bg-accent text-primary hover:bg-tertiary"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                     <polyline points="17 8 12 3 7 8" />
                     <line x1="12" y1="3" x2="12" y2="15" />
@@ -300,17 +291,7 @@ export default function AdvertisingPage() {
                 disabled={isSaving}
                 className="bg-accent text-primary hover:bg-tertiary"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                   <polyline points="17 8 12 3 7 8" />
                   <line x1="12" y1="3" x2="12" y2="15" />
@@ -320,199 +301,111 @@ export default function AdvertisingPage() {
             )}
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-[1.25fr_0.75fr]">
-            <Card className="border-secondary/20">
-              <div className="relative h-80 overflow-hidden rounded-2xl">
-                <Image
-                  src={featuredCards[0].image}
-                  alt={featuredCards[0].title}
-                  fill
-                  priority
-                  sizes="(max-width: 1024px) 100vw, 60vw"
-                  className="object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-                  <p className="text-xs uppercase tracking-[0.3em] text-neutral/70">
-                    Featured Product
-                  </p>
-                  <h2 className="text-2xl font-semibold">
-                    {featuredCards[0].title}
-                  </h2>
-                  <p className="text-sm text-neutral/80">
-                    {featuredCards[0].subtitle}
-                  </p>
-                  <div className="mt-4 flex items-center justify-between">
-                    <span className="text-lg font-semibold text-accent">
-                      {featuredCards[0].price}
-                    </span>
-                    <Button size="sm" className="bg-accent text-primary hover:bg-tertiary">
-                      Details
-                    </Button>
-                  </div>
-                </div>
+          {/* Filter Bar */}
+          <Card className="border-secondary/20">
+            <CardContent className="flex flex-wrap items-center gap-4 py-4 text-sm">
+              {/* Search */}
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by title, description, or price..."
+                className="h-9 min-w-[220px] flex-1 rounded-xl border border-secondary/20 px-3 text-xs outline-none focus:border-primary"
+              />
+              {/* Categories */}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">Category:</span>
+                {["All","Livestock","Cereals","Legumes","Inputs"].map((label) => (
+                  <Button
+                    key={label}
+                    size="sm"
+                    variant={selectedCategory === label || (label === "All" && !selectedCategory) ? "solid" : "outline"}
+                    onClick={() => setSelectedCategory(label === "All" ? null : label)}
+                  >
+                    {label}
+                  </Button>
+                ))}
               </div>
-            </Card>
+              {/* Price Range */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">Price:</span>
+                <input
+                  type="text" value={minPrice} onChange={(e) => setMinPrice(e.target.value)}
+                  placeholder="Min" className="h-9 w-20 rounded-xl border border-secondary/20 px-2 text-xs outline-none focus:border-primary"
+                />
+                <span className="text-xs text-secondary">—</span>
+                <input
+                  type="text" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)}
+                  placeholder="Max" className="h-9 w-20 rounded-xl border border-secondary/20 px-2 text-xs outline-none focus:border-primary"
+                />
+                {(minPrice || maxPrice) ? (
+                  <button
+                    type="button"
+                    onClick={() => { setMinPrice(""); setMaxPrice(""); }}
+                    className="text-xs text-secondary underline"
+                  >
+                    Clear
+                  </button>
+                ) : null}
+                {(searchQuery || selectedCategory) ? (
+                  <button
+                    type="button"
+                    onClick={() => { setSearchQuery(""); setSelectedCategory(null); }}
+                    className="text-xs text-secondary underline"
+                  >
+                    Reset all
+                  </button>
+                ) : null}
+              </div>
+            </CardContent>
+          </Card>
 
-            <div className="grid gap-4">
-              <Card className="border-secondary/20">
-                <div className="relative h-40 overflow-hidden rounded-2xl">
+          {/* Listings header */}
+          <div className="flex items-center justify-between text-xs text-secondary">
+            <span>Showing {filteredListings.length} {filteredListings.length === 1 ? "listing" : "listings"}</span>
+            <span>Sort by: Newest First</span>
+          </div>
+        </Container>
+      </section>
+
+      {/* Product Listings Grid */}
+      <section className="bg-white pb-16">
+        <Container>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {filteredListings.map((item) => (
+              <Card key={item.title} className="border-secondary/20">
+                <div className="relative h-36 overflow-hidden rounded-t-2xl">
                   <Image
-                    src={featuredCards[1].image}
-                    alt={featuredCards[1].title}
+                    src={item.image}
+                    alt={item.title}
                     fill
-                    sizes="(max-width: 1024px) 100vw, 35vw"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw"
                     className="object-cover"
                   />
                 </div>
-                <CardContent className="space-y-2">
+                <CardHeader>
+                  <CardTitle className="text-sm">{item.title}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 text-xs text-secondary">
+                  <p>{item.subtitle}</p>
                   <p className="text-sm font-semibold text-primary">
-                    {featuredCards[1].title}
-                  </p>
-                  <p className="text-xs text-secondary">
-                    {featuredCards[1].subtitle}
-                  </p>
-                  <p className="text-sm font-semibold text-primary">
-                    {featuredCards[1].price}
+                    {item.price}
                   </p>
                 </CardContent>
+                <CardFooter className="flex gap-2">
+                  <Button variant="ghost" className="px-0">
+                    View listing
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="bg-accent text-primary hover:bg-tertiary ml-auto"
+                    onClick={() => makePayment(item)}
+                  >
+                    Buy
+                  </Button>
+                </CardFooter>
               </Card>
-              <div className="grid gap-4 sm:grid-cols-2">
-                {featuredCards.slice(2).map((item) => (
-                  <Card key={item.title} className="border-secondary/20">
-                    <div className="relative h-28 overflow-hidden rounded-2xl">
-                      <Image
-                        src={item.image}
-                        alt={item.title}
-                        fill
-                        sizes="(max-width: 1024px) 50vw, 20vw"
-                        className="object-cover"
-                      />
-                    </div>
-                    <CardContent className="space-y-1">
-                      <p className="text-xs font-semibold text-primary">
-                        {item.title}
-                      </p>
-                      <p className="text-xs text-secondary">{item.price}</p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="grid gap-6 lg:grid-cols-[0.32fr_0.68fr]">
-            <Card className="border-secondary/20">
-              <CardHeader>
-                <CardTitle className="text-base">Filters</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6 text-sm text-secondary">
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-primary">
-                    Search Ads
-                  </p>
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Keywords..."
-                    className="w-full rounded-xl border border-secondary/20 px-3 py-2 text-xs text-secondary outline-none focus:border-primary"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-primary">
-                    Categories
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {[
-                      "All",
-                      "Livestock",
-                      "Cereals",
-                      "Legumes",
-                      "Inputs",
-                    ].map((label) => (
-                      <Button
-                        key={label}
-                        size="sm"
-                        variant={selectedCategory === label || (label === "All" && !selectedCategory) ? "solid" : "outline"}
-                        onClick={() => setSelectedCategory(label === "All" ? null : label)}
-                      >
-                        {label}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-primary">
-                    Price Range
-                  </p>
-                  <div className="flex items-center gap-2 text-xs">
-                    <input
-                      type="text"
-                      value={minPrice}
-                      onChange={(e) => setMinPrice(e.target.value)}
-                      placeholder="Min (e.g. 10000)"
-                      className="h-9 w-full rounded-xl border border-secondary/20 px-3 text-xs outline-none focus:border-primary"
-                    />
-                    <span className="text-secondary">—</span>
-                    <input
-                      type="text"
-                      value={maxPrice}
-                      onChange={(e) => setMaxPrice(e.target.value)}
-                      placeholder="Max (e.g. 500000)"
-                      className="h-9 w-full rounded-xl border border-secondary/20 px-3 text-xs outline-none focus:border-primary"
-                    />
-                  </div>
-                  <div className="h-2 rounded-full bg-secondary/20" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="space-y-4">
-              <div className="flex items-center justify-between text-xs text-secondary">
-                <span>
-                  Showing {filteredListings.length}{" "}
-                  {filteredListings.length === 1 ? "listing" : "listings"}
-                </span>
-                <span>Sort by: Newest First</span>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {filteredListings.map((item) => (
-                  <Card key={item.title} className="border-secondary/20">
-                    <div className="relative h-36 overflow-hidden rounded-2xl">
-                      <Image
-                        src={item.image}
-                        alt={item.title}
-                        fill
-                        sizes="(max-width: 1024px) 50vw, 20vw"
-                        className="object-cover"
-                      />
-                    </div>
-                    <CardHeader>
-                      <CardTitle className="text-sm">{item.title}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2 text-xs text-secondary">
-                      <p>{item.subtitle}</p>
-                      <p className="text-sm font-semibold text-primary">
-                        {item.price}
-                      </p>
-                    </CardContent>
-                    <CardFooter className="flex gap-2">
-                      <Button variant="ghost" className="px-0">
-                        View listing
-                      </Button>
-                      <Button
-                        size="sm"
-                        className="bg-accent text-primary hover:bg-tertiary ml-auto"
-                        onClick={() => makePayment(item)}
-                      >
-                        Buy
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                ))}
-              </div>
-            </div>
+            ))}
           </div>
         </Container>
       </section>
