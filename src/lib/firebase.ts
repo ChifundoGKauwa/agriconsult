@@ -1,10 +1,10 @@
-// Import the functions you need from the SDKs you need
+// Import the functions 
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
-// Your web app's Firebase configuration
+// app's Firebase configuration
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -15,9 +15,8 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// Initialize Firebase
-const isBrowser = typeof window !== "undefined";
-export const app = isBrowser ? initializeApp(firebaseConfig) : null!;
-export const auth = isBrowser ? getAuth(app) : null!;
-export const db = isBrowser ? getFirestore(app) : null!;
-export const analytics = isBrowser ? getAnalytics(app) : null;
+// Initialize Firebase (uses build-time env vars; safe as env vars are all NEXT_PUBLIC_* inlined by Next.js)
+export const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
+export const db = getFirestore(app);
+export const analytics = typeof window !== "undefined" ? getAnalytics(app) : null;
