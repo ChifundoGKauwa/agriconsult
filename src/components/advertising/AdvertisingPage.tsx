@@ -278,43 +278,39 @@ export default function AdvertisingPage() {
           </div>
 
           {/* Filter Bar */}
-          <Card className="border-secondary/20">
-            <CardContent className="py-3">
-              <div className="relative">
-                <svg
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary"
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <circle cx="11" cy="11" r="8" />
-                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                </svg>
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search by name, title, or price..."
-                  className="h-10 w-full rounded-xl border border-secondary/20 bg-white pl-10 pr-4 text-sm outline-none focus:border-primary"
-                />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchQuery("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-secondary hover:text-primary"
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          <div className="relative">
+            <svg
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary"
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by name, title, or price..."
+              className="h-10 w-full rounded-xl border border-secondary/20 bg-white pl-10 pr-4 text-sm outline-none focus:border-primary"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-secondary hover:text-primary"
+              >
+                ✕
+              </button>
+            )}
+          </div>
 
           {/* Listings header */}
           <div className="flex items-center justify-between text-xs text-secondary">
