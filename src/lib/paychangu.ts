@@ -112,7 +112,7 @@ export const openPayChanguCheckout = (
 
   window.PaychanguCheckout({
     public_key:
-      process.env.NEXT_PUBLIC_PAYCHANGU_PUBLIC_KEY ||
+      process.env.PAYCHANGU_PUBLIC_KEY ||
       "pub-test-HYSBQpa5K91mmXMHrjhkmC6mAjObPJ2u",
     tx_ref: txRef,
     amount,
