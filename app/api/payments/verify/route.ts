@@ -8,7 +8,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Missing tx_ref" }, { status: 400 });
   }
 
-  if (!process.env.NEXT_PUBLIC_PAYCHANGU_SECRET_KEY) {
+  if (!process.env.PAYCHANGU_SECRET_KEY) {
     return NextResponse.json(
       { error: "PAYCHANGU_SECRET_KEY is not configured" },
       { status: 500 }
@@ -20,7 +20,7 @@ export async function GET(request: Request) {
     {
       headers: {
         Accept: "application/json",
-        Authorization: `Bearer ${process.env.NEXT_PUBLIC_PAYCHANGU_SECRET_KEY}`,
+        Authorization: `Bearer ${process.env.PAYCHANGU_SECRET_KEY}`,
       },
       cache: "no-store",
     }

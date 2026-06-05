@@ -1,24 +1,25 @@
+import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 
-export async function POST() {
-  const response = await fetch(
-    "https://api.paychangu.com/payment",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.NEXT_PUBLIC_PAYCHANGU_SECRET_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        amount: 1000,
-        currency: "MWK",
-        callback_url: "http://localhost:3000/payment-success",
-        return_url: "http://localhost:3000/payment-success",
-      }),
+export async function POST(request: Request) {
+  const payload = await request.text();
+  const signature = request.headers.get("Signature");
+  const webhookSecret = process.env.PAYCHANGU_WEBHOOK_SECRET;
+
+  if (webhookSecret) {
+    const expectedSignature = crypto
+      .createHmac("sha256", webhookSecret)
+      .update(payload)
+      .digest("hex");
+
+    if (signature !== expectedSignature) {
+      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
-  );
+  }
 
-  const data = await response.json();
+  const event = JSON.parse(payload);
 
-  return NextResponse.json(data);
+  console.log("PayChangu webhook received:", event);
+
+  return NextResponse.json({ received: true });
 }
