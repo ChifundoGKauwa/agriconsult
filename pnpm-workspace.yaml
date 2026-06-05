@@ -1,5 +1,6 @@
 allowBuilds:
   '@firebase/util': true
+  ngrok: true
   protobufjs: true
   sharp: true
   unrs-resolver: true
