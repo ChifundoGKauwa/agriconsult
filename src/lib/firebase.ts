@@ -1,10 +1,8 @@
 // Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
+import { initializeApp, type FirebaseApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+import { getAuth, type Auth } from "firebase/auth";
+import { getFirestore, type Firestore } from "firebase/firestore";
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
@@ -18,9 +16,42 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// Initialize Firebase
-export const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const db = getFirestore(app);
+// Lazy initialization — prevents SSR crashes on Cloudflare Workers
+let _app: FirebaseApp | null = null;
+let _auth: Auth | null = null;
+let _db: Firestore | null = null;
+
+function getApp(): FirebaseApp {
+  if (!_app) {
+    _app = initializeApp(firebaseConfig);
+  }
+  return _app;
+}
+
+function getAuth_(): Auth {
+  if (!_auth) {
+    _auth = getAuth(getApp());
+  }
+  return _auth;
+}
+
+function getDb(): Firestore {
+  if (!_db) {
+    _db = getFirestore(getApp());
+  }
+  return _db;
+}
+
+// Proxy-based lazy exports — only initializes Firebase on first access
+export const app = new Proxy({} as FirebaseApp, {
+  get(_, prop) { return Reflect.get(getApp(), prop); },
+}) as FirebaseApp;
+export const auth = new Proxy({} as Auth, {
+  get(_, prop) { return Reflect.get(getAuth_(), prop); },
+}) as Auth;
+export const db = new Proxy({} as Firestore, {
+  get(_, prop) { return Reflect.get(getDb(), prop); },
+}) as Firestore;
+
 export const analytics =
-  typeof window !== "undefined" ? getAnalytics(app) : null;
+  typeof window !== "undefined" ? () => getAnalytics(getApp()) : null;
