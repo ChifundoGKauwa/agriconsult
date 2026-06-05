@@ -107,9 +107,6 @@ export default function AdvertisingPage() {
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
   const [uploadedPublicId, setUploadedPublicId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [minPrice, setMinPrice] = useState("");
-  const [maxPrice, setMaxPrice] = useState("");
   const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
   useEffect(() => {
@@ -160,36 +157,15 @@ export default function AdvertisingPage() {
     ? marketplaceListings
     : listings;
 
-  // Filtered listings based on search, category, and price range
+  // Filtered listings based on search only
   const filteredListings = displayListings.filter((item) => {
-    // Search by title / description / price
-    const matchesSearch =
-      !searchQuery ||
-      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.subtitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.price.toLowerCase().includes(searchQuery.toLowerCase());
-
-    // Filter by category keyword in title/subtitle
-    const matchesCategory =
-      !selectedCategory ||
-      item.title.toLowerCase().includes(selectedCategory.toLowerCase()) ||
-      item.subtitle.toLowerCase().includes(selectedCategory.toLowerCase());
-
-    // Filter by price range (parse numeric MWK value)
-    let matchesPrice = true;
-    const priceNum = parseFloat(item.price.replace(/[^0-9.]/g, ""));
-    if (!isNaN(priceNum)) {
-      if (minPrice) {
-        const min = parseFloat(minPrice.replace(/[^0-9.]/g, ""));
-        if (!isNaN(min) && priceNum < min) matchesPrice = false;
-      }
-      if (maxPrice) {
-        const max = parseFloat(maxPrice.replace(/[^0-9.]/g, ""));
-        if (!isNaN(max) && priceNum > max) matchesPrice = false;
-      }
-    }
-
-    return matchesSearch && matchesCategory && matchesPrice;
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      item.title.toLowerCase().includes(q) ||
+      item.subtitle.toLowerCase().includes(q) ||
+      item.price.toLowerCase().includes(q)
+    );
   });
 
   const handleUploadSuccess = (result: unknown) => {
@@ -303,59 +279,39 @@ export default function AdvertisingPage() {
 
           {/* Filter Bar */}
           <Card className="border-secondary/20">
-            <CardContent className="flex flex-wrap items-center gap-4 py-4 text-sm">
-              {/* Search */}
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by title, description, or price..."
-                className="h-9 min-w-[220px] flex-1 rounded-xl border border-secondary/20 px-3 text-xs outline-none focus:border-primary"
-              />
-              {/* Categories */}
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">Category:</span>
-                {["All","Livestock","Cereals","Legumes","Inputs"].map((label) => (
-                  <Button
-                    key={label}
-                    size="sm"
-                    variant={selectedCategory === label || (label === "All" && !selectedCategory) ? "solid" : "outline"}
-                    onClick={() => setSelectedCategory(label === "All" ? null : label)}
-                  >
-                    {label}
-                  </Button>
-                ))}
-              </div>
-              {/* Price Range */}
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">Price:</span>
+            <CardContent className="py-3">
+              <div className="relative">
+                <svg
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
                 <input
-                  type="text" value={minPrice} onChange={(e) => setMinPrice(e.target.value)}
-                  placeholder="Min" className="h-9 w-20 rounded-xl border border-secondary/20 px-2 text-xs outline-none focus:border-primary"
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by name, title, or price..."
+                  className="h-10 w-full rounded-xl border border-secondary/20 bg-white pl-10 pr-4 text-sm outline-none focus:border-primary"
                 />
-                <span className="text-xs text-secondary">—</span>
-                <input
-                  type="text" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)}
-                  placeholder="Max" className="h-9 w-20 rounded-xl border border-secondary/20 px-2 text-xs outline-none focus:border-primary"
-                />
-                {(minPrice || maxPrice) ? (
+                {searchQuery && (
                   <button
                     type="button"
-                    onClick={() => { setMinPrice(""); setMaxPrice(""); }}
-                    className="text-xs text-secondary underline"
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-secondary hover:text-primary"
                   >
-                    Clear
+                    ✕
                   </button>
-                ) : null}
-                {(searchQuery || selectedCategory) ? (
-                  <button
-                    type="button"
-                    onClick={() => { setSearchQuery(""); setSelectedCategory(null); }}
-                    className="text-xs text-secondary underline"
-                  >
-                    Reset all
-                  </button>
-                ) : null}
+                )}
               </div>
             </CardContent>
           </Card>
