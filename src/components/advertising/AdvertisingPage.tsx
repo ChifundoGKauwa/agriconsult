@@ -24,6 +24,7 @@ import {
 } from "@/src/components/ui/card";
 import { Container } from "@/src/components/ui/container";
 import { auth, db } from "@/src/lib/firebase";
+import { openPayChanguCheckout, preloadPayChangu } from "@/src/lib/paychangu";
 
 const ADVERTISEMENTS_COLLECTION = "images";
 
@@ -107,10 +108,17 @@ export default function AdvertisingPage() {
   const [formPrice, setFormPrice] = useState("");
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
   const [uploadedPublicId, setUploadedPublicId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
   const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, setUser);
+
+    // Pre-load PayChangu scripts so they're ready for click handlers
+    preloadPayChangu();
 
     return unsubscribe;
   }, []);
@@ -142,8 +150,10 @@ export default function AdvertisingPage() {
   const marketplaceListings = useMemo(
     () =>
       advertisements.map((advertisement) => ({
+        id: advertisement.id,
         title: advertisement.title || `Advertisement`,
         subtitle: advertisement.description || "No description",
+        description: advertisement.description || "No description",
         price: advertisement.price || "Contact seller",
         image: advertisement.imageurl,
       })),
@@ -153,6 +163,38 @@ export default function AdvertisingPage() {
   const displayListings = marketplaceListings.length
     ? marketplaceListings
     : listings;
+
+  // Filtered listings based on search, category, and price range
+  const filteredListings = displayListings.filter((item) => {
+    // Search by title / description / price
+    const matchesSearch =
+      !searchQuery ||
+      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.subtitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.price.toLowerCase().includes(searchQuery.toLowerCase());
+
+    // Filter by category keyword in title/subtitle
+    const matchesCategory =
+      !selectedCategory ||
+      item.title.toLowerCase().includes(selectedCategory.toLowerCase()) ||
+      item.subtitle.toLowerCase().includes(selectedCategory.toLowerCase());
+
+    // Filter by price range (parse numeric MWK value)
+    let matchesPrice = true;
+    const priceNum = parseFloat(item.price.replace(/[^0-9.]/g, ""));
+    if (!isNaN(priceNum)) {
+      if (minPrice) {
+        const min = parseFloat(minPrice.replace(/[^0-9.]/g, ""));
+        if (!isNaN(min) && priceNum < min) matchesPrice = false;
+      }
+      if (maxPrice) {
+        const max = parseFloat(maxPrice.replace(/[^0-9.]/g, ""));
+        if (!isNaN(max) && priceNum > max) matchesPrice = false;
+      }
+    }
+
+    return matchesSearch && matchesCategory && matchesPrice;
+  });
 
   const handleUploadSuccess = (result: unknown) => {
     const uploadResult = result as { info?: string | CloudinaryUploadInfo };
@@ -190,6 +232,24 @@ export default function AdvertisingPage() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const makePayment = (item: {
+    id?: string;
+    title: string;
+    description?: string;
+    subtitle?: string;
+    price: string;
+  }) => {
+    openPayChanguCheckout(
+      {
+        id: item.id,
+        title: item.title,
+        description: item.description || item.subtitle,
+        price: item.price,
+      },
+      { email: user?.email ?? undefined }
+    );
   };
 
   return (
@@ -351,9 +411,13 @@ export default function AdvertisingPage() {
                   <p className="text-xs font-semibold uppercase tracking-[0.3em] text-primary">
                     Search Ads
                   </p>
-                  <div className="rounded-xl border border-secondary/20 px-3 py-2 text-xs text-secondary">
-                    Keywords...
-                  </div>
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Keywords..."
+                    className="w-full rounded-xl border border-secondary/20 px-3 py-2 text-xs text-secondary outline-none focus:border-primary"
+                  />
                 </div>
                 <div className="space-y-2">
                   <p className="text-xs font-semibold uppercase tracking-[0.3em] text-primary">
@@ -361,12 +425,18 @@ export default function AdvertisingPage() {
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {[
+                      "All",
                       "Livestock",
                       "Cereals",
                       "Legumes",
                       "Inputs",
                     ].map((label) => (
-                      <Button key={label} size="sm" variant="outline">
+                      <Button
+                        key={label}
+                        size="sm"
+                        variant={selectedCategory === label || (label === "All" && !selectedCategory) ? "solid" : "outline"}
+                        onClick={() => setSelectedCategory(label === "All" ? null : label)}
+                      >
                         {label}
                       </Button>
                     ))}
@@ -376,19 +446,24 @@ export default function AdvertisingPage() {
                   <p className="text-xs font-semibold uppercase tracking-[0.3em] text-primary">
                     Price Range
                   </p>
-                  <div className="grid gap-2 text-xs">
-                    <div className="flex items-center justify-between">
-                      <span>Min</span>
-                      <span>Max</span>
-                    </div>
-                    <div className="h-2 rounded-full bg-secondary/20" />
+                  <div className="flex items-center gap-2 text-xs">
+                    <input
+                      type="text"
+                      value={minPrice}
+                      onChange={(e) => setMinPrice(e.target.value)}
+                      placeholder="Min (e.g. 10000)"
+                      className="h-9 w-full rounded-xl border border-secondary/20 px-3 text-xs outline-none focus:border-primary"
+                    />
+                    <span className="text-secondary">—</span>
+                    <input
+                      type="text"
+                      value={maxPrice}
+                      onChange={(e) => setMaxPrice(e.target.value)}
+                      placeholder="Max (e.g. 500000)"
+                      className="h-9 w-full rounded-xl border border-secondary/20 px-3 text-xs outline-none focus:border-primary"
+                    />
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-primary">
-                    Condition
-                  </p>
-                 
+                  <div className="h-2 rounded-full bg-secondary/20" />
                 </div>
               </CardContent>
             </Card>
@@ -396,13 +471,13 @@ export default function AdvertisingPage() {
             <div className="space-y-4">
               <div className="flex items-center justify-between text-xs text-secondary">
                 <span>
-                  Showing {displayListings.length}{" "}
-                  {displayListings.length === 1 ? "listing" : "listings"}
+                  Showing {filteredListings.length}{" "}
+                  {filteredListings.length === 1 ? "listing" : "listings"}
                 </span>
                 <span>Sort by: Newest First</span>
               </div>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {displayListings.map((item) => (
+                {filteredListings.map((item) => (
                   <Card key={item.title} className="border-secondary/20">
                     <div className="relative h-36 overflow-hidden rounded-2xl">
                       <Image
@@ -422,9 +497,16 @@ export default function AdvertisingPage() {
                         {item.price}
                       </p>
                     </CardContent>
-                    <CardFooter>
+                    <CardFooter className="flex gap-2">
                       <Button variant="ghost" className="px-0">
                         View listing
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="bg-accent text-primary hover:bg-tertiary ml-auto"
+                        onClick={() => makePayment(item)}
+                      >
+                        Buy
                       </Button>
                     </CardFooter>
                   </Card>
