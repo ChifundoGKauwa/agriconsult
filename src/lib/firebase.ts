@@ -15,29 +15,8 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// Initialize Firebase lazily — on first access, not at module import time
-function initOnce() {
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-  const analytics = typeof window !== "undefined" ? getAnalytics(app) : null;
-  return { app, auth, db, analytics };
-}
-
-let _cache: ReturnType<typeof initOnce> | null = null;
-function getCache() {
-  if (!_cache) _cache = initOnce();
-  return _cache;
-}
-
-export const app = new Proxy({} as ReturnType<typeof initOnce>["app"], {
-  get(_, prop) { return Reflect.get(getCache().app, prop); },
-});
-export const auth = new Proxy({} as ReturnType<typeof initOnce>["auth"], {
-  get(_, prop) { return Reflect.get(getCache().auth, prop); },
-});
-export const db = new Proxy({} as ReturnType<typeof initOnce>["db"], {
-  get(_, prop) { return Reflect.get(getCache().db, prop); },
-});
-export const analytics =
-  typeof window !== "undefined" ? getCache().analytics : null;
+// Initialize Firebase directly — works because NEXT_PUBLIC_* vars are inlined at build time
+export const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
+export const db = getFirestore(app);
+export const analytics = typeof window !== "undefined" ? getAnalytics(app) : null;
