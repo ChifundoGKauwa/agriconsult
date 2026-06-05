@@ -1,4 +1,9 @@
+"use client";
+
 import Image from "next/image";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { collection, onSnapshot, orderBy, query, limit, type Timestamp } from "firebase/firestore";
 import { Badge } from "@/src/components/ui/badge";
 import { Button } from "@/src/components/ui/button";
 import {
@@ -9,6 +14,27 @@ import {
   CardTitle,
 } from "@/src/components/ui/card";
 import { Container } from "@/src/components/ui/container";
+import { db } from "@/src/lib/firebase";
+
+const IMAGES_COLLECTION = "images";
+const MESSAGES_COLLECTION = "messages";
+
+type Advertisement = {
+  id: string;
+  imageurl: string;
+  title: string;
+  description: string;
+  price: string;
+  createdAt?: Timestamp;
+};
+
+type Message = {
+  id: string;
+  message: string;
+  displayName: string;
+  createdAt?: Timestamp;
+  replies?: { message: string; displayName: string }[];
+};
 
 const insights = [
   {
@@ -25,29 +51,6 @@ const insights = [
     title: "Growth Coaching",
     description:
       "Milestone planning for farms scaling from local distribution to export.",
-  },
-];
-
-const marketplace = [
-  {
-    title: "Hybrid Maize Seed",
-    detail: "High-yield, drought-tolerant",
-    price: "MWK 48,000",
-  },
-  {
-    title: "Organic Fertilizer Blend",
-    detail: "Slow release, soil-safe",
-    price: "MWK 26,500",
-  },
-  {
-    title: "Drip Irrigation Kit",
-    detail: "5-acre starter system",
-    price: "MWK 210,000",
-  },
-  {
-    title: "Harvest Logistics Plan",
-    detail: "Cold chain advisory",
-    price: "MWK 75,000",
   },
 ];
 
@@ -73,8 +76,71 @@ const testimonials = [
 ];
 
 export default function LandingPage() {
+  const [marketAds, setMarketAds] = useState<Advertisement[]>([]);
+  const [frequentQuestions, setFrequentQuestions] = useState<Message[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch first 4 ads from Firestore
+  useEffect(() => {
+    const q = query(
+      collection(db, IMAGES_COLLECTION),
+      orderBy("createdAt", "desc"),
+      limit(4)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setMarketAds(
+        snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...(doc.data() as Omit<Advertisement, "id">),
+        }))
+      );
+      setLoading(false);
+    });
+
+    return unsubscribe;
+  }, []);
+
+  // Fetch messages to find frequently asked questions
+  useEffect(() => {
+    const q = query(
+      collection(db, MESSAGES_COLLECTION),
+      orderBy("createdAt", "desc"),
+      limit(20)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const msgs = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...(doc.data() as Omit<Message, "id">),
+      }));
+
+      // Find duplicates by checking which messages appear more than once
+      const messageCounts: Record<string, { count: number; msg: Message }> = {};
+      msgs.forEach((msg) => {
+        const key = msg.message.toLowerCase().trim();
+        if (!messageCounts[key]) {
+          messageCounts[key] = { count: 0, msg };
+        }
+        messageCounts[key].count++;
+      });
+
+      // Show messages asked more than once, sorted by frequency
+      const frequent = Object.values(messageCounts)
+        .filter((item) => item.count > 1)
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 3)
+        .map((item) => item.msg);
+
+      setFrequentQuestions(frequent);
+    });
+
+    return unsubscribe;
+  }, []);
+
   return (
     <div className="flex flex-col bg-neutral text-primary">
+      {/* Hero */}
       <section className="relative overflow-hidden bg-primary text-white">
         <div className="absolute inset-0">
           <Image
@@ -101,16 +167,17 @@ export default function LandingPage() {
             </p>
             <div className="flex flex-wrap gap-4">
               <Button size="lg" className="bg-accent text-primary hover:bg-tertiary">
-                Start Your Consultation
+                <Link href="/consulting">Start Your Consultation</Link>
               </Button>
               <Button size="lg" className="bg-secondary text-white hover:bg-primary">
-                View Case Studies
+                <Link href="/#services">View Case Studies</Link>
               </Button>
             </div>
           </div>
         </Container>
       </section>
 
+      {/* Services */}
       <section id="services" className="bg-white py-16">
         <Container className="space-y-12">
           <div className="flex flex-wrap items-center justify-between gap-6 text-[11px] uppercase tracking-[0.28em] text-secondary">
@@ -135,9 +202,11 @@ export default function LandingPage() {
                   We provide soil health diagnostics, crop cycle planning, and
                   financial risk assessments tailored to your local geography.
                 </p>
-                <Button variant="ghost" className="px-0 text-primary">
-                  Explore Services
-                </Button>
+                <Link href="/consulting">
+                  <Button variant="ghost" className="px-0 text-primary">
+                    Explore Services
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
             <Card className="border-secondary/30 bg-primary text-white">
@@ -196,6 +265,7 @@ export default function LandingPage() {
         </Container>
       </section>
 
+      {/* Consulting */}
       <section id="consulting" className="py-16">
         <Container className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="space-y-6">
@@ -208,10 +278,14 @@ export default function LandingPage() {
               strategy to ensure your operations are profitable and resilient.
             </p>
             <div className="flex flex-wrap gap-3">
-              <Button variant="solid" className="bg-primary text-white hover:bg-secondary">
-                Schedule Strategy Call
-              </Button>
-              <Button variant="ghost">Download Service Deck</Button>
+              <Link href="/consulting">
+                <Button variant="solid" className="bg-primary text-white hover:bg-secondary">
+                  Schedule Strategy Call
+                </Button>
+              </Link>
+              <Link href="/consulting">
+                <Button variant="ghost">Download Service Deck</Button>
+              </Link>
             </div>
           </div>
           <div className="space-y-4 rounded-3xl border border-secondary/20 bg-white p-6 shadow-sm">
@@ -232,6 +306,7 @@ export default function LandingPage() {
         </Container>
       </section>
 
+      {/* Marketplace – Live from Firestore */}
       <section id="advertising" className="bg-white py-16">
         <Container className="space-y-10">
           <div className="flex flex-wrap items-end justify-between gap-6">
@@ -241,31 +316,77 @@ export default function LandingPage() {
                 Inputs, tools, and advisory kits curated for performance.
               </h2>
             </div>
-            <Button variant="outline">View All Products</Button>
+            <Link href="/advertising">
+              <Button variant="outline">View All Products</Button>
+            </Link>
           </div>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {marketplace.map((item) => (
-              <Card key={item.title} className="border-secondary/20">
-                <CardHeader>
-                  <CardTitle className="text-base">{item.title}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3 text-sm text-secondary">
-                  <p>{item.detail}</p>
-                  <p className="text-lg font-semibold text-primary">
-                    {item.price}
-                  </p>
-                </CardContent>
-                <CardFooter>
-                  <Button variant="ghost" className="px-0">
-                    Add to quote
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
+            {loading ? (
+              <p className="col-span-full text-sm text-secondary">Loading marketplace...</p>
+            ) : marketAds.length > 0 ? (
+              marketAds.map((ad) => (
+                <Card key={ad.id} className="border-secondary/20">
+                  {ad.imageurl && (
+                    <div className="relative h-36 overflow-hidden rounded-t-2xl">
+                      <Image
+                        src={ad.imageurl}
+                        alt={ad.title || "Marketplace item"}
+                        fill
+                        sizes="(max-width: 768px) 100vw, 25vw"
+                        className="object-cover"
+                      />
+                    </div>
+                  )}
+                  <CardHeader>
+                    <CardTitle className="text-base">{ad.title || "Untitled"}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3 text-sm text-secondary">
+                    <p>{ad.description || "No description"}</p>
+                    <p className="text-lg font-semibold text-primary">
+                      {ad.price || "Contact seller"}
+                    </p>
+                  </CardContent>
+                  <CardFooter>
+                    <Link href="/advertising">
+                      <Button variant="ghost" className="px-0">
+                        View details
+                      </Button>
+                    </Link>
+                  </CardFooter>
+                </Card>
+              ))
+            ) : (
+              <>
+                {[
+                  { title: "Hybrid Maize Seed", detail: "High-yield, drought-tolerant", price: "MWK 48,000" },
+                  { title: "Organic Fertilizer Blend", detail: "Slow release, soil-safe", price: "MWK 26,500" },
+                  { title: "Drip Irrigation Kit", detail: "5-acre starter system", price: "MWK 210,000" },
+                  { title: "Harvest Logistics Plan", detail: "Cold chain advisory", price: "MWK 75,000" },
+                ].map((item) => (
+                  <Card key={item.title} className="border-secondary/20">
+                    <CardHeader>
+                      <CardTitle className="text-base">{item.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3 text-sm text-secondary">
+                      <p>{item.detail}</p>
+                      <p className="text-lg font-semibold text-primary">{item.price}</p>
+                    </CardContent>
+                    <CardFooter>
+                      <Link href="/advertising">
+                        <Button variant="ghost" className="px-0">
+                          View details
+                        </Button>
+                      </Link>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </>
+            )}
           </div>
         </Container>
       </section>
 
+      {/* CTA */}
       <section className="py-16">
         <Container className="grid gap-10 rounded-3xl border border-secondary/30 bg-neutral p-10 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="space-y-5">
@@ -279,42 +400,61 @@ export default function LandingPage() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-4">
-            <Button size="lg">Start a Project</Button>
-            <Button variant="outline" size="lg">
-              Talk to Sales
-            </Button>
+            <Link href="/consulting">
+              <Button size="lg">Start a Project</Button>
+            </Link>
+            <Link href="/consulting">
+              <Button variant="outline" size="lg">
+                Talk to Sales
+              </Button>
+            </Link>
           </div>
         </Container>
       </section>
 
+      {/* Q&A – Frequently Asked Questions from Firestore */}
       <section id="qa" className="bg-white py-16">
         <Container className="space-y-10">
           <div className="space-y-4">
-            <Badge>Client Stories</Badge>
+            <Badge>Frequently Asked Questions</Badge>
             <h2 className="text-3xl font-semibold">
               Trusted by producers, exporters, and agri-innovators.
             </h2>
           </div>
           <div className="grid gap-6 md:grid-cols-3">
-            {testimonials.map((testimonial) => (
-              <Card key={testimonial.name} className="border-secondary/20">
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-secondary">"{testimonial.quote}"</p>
-                  <div>
-                    <p className="text-sm font-semibold text-primary">
-                      {testimonial.name}
-                    </p>
-                    <p className="text-xs text-secondary/80">
-                      {testimonial.role}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+            {frequentQuestions.length > 0 ? (
+              frequentQuestions.map((q) => (
+                <Card key={q.id} className="border-secondary/20">
+                  <CardContent className="space-y-4">
+                    <p className="text-sm text-secondary">&ldquo;{q.message}&rdquo;</p>
+                    <div>
+                      <p className="text-xs text-secondary/80">
+                        Asked by {q.displayName}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              testimonials.map((testimonial) => (
+                <Card key={testimonial.name} className="border-secondary/20">
+                  <CardContent className="space-y-4">
+                    <p className="text-sm text-secondary">&ldquo;{testimonial.quote}&rdquo;</p>
+                    <div>
+                      <p className="text-sm font-semibold text-primary">
+                        {testimonial.name}
+                      </p>
+                      <p className="text-xs text-secondary/80">
+                        {testimonial.role}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </div>
         </Container>
       </section>
-
     </div>
   );
 }
