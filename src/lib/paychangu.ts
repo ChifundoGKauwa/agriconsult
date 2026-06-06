@@ -111,7 +111,7 @@ export const openPayChanguCheckout = (
   const appUrl = getPublicAppUrl();
 
   window.PaychanguCheckout({
-    public_key: process.env.PAYCHANGU_PUBLIC_KEY || process.env.NEXT_PUBLIC_PAYCHANGU_PUBLIC_KEY || "",
+    public_key: PAYCHANGU_PUBLIC_KEY,
     tx_ref: txRef,
     amount,
     currency: "MWK",
@@ -132,3 +132,5 @@ export const openPayChanguCheckout = (
     },
   });
 };
+
+export const PAYCHANGU_PUBLIC_KEY = "pub-test-ONJWYC7chixhARkrg610kU8NUSDiLT4B";
