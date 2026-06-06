@@ -24,6 +24,7 @@ import {
 } from "@/src/components/ui/card";
 import { Container } from "@/src/components/ui/container";
 import { auth, db } from "@/src/lib/firebase";
+import { openPayChanguCheckout, preloadPayChangu } from "@/src/lib/paychangu";
 const ADVERTISEMENTS_COLLECTION = "images";
 
 type Advertisement = {
@@ -206,26 +207,12 @@ export default function AdvertisingPage() {
     }
   };
 
-  const makePayment = async (item: { title: string; price: string }) => {
-  try {
-    const response = await fetch("/api/payments", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        title: item.title,
-        price: item.price,
-        email: user?.email,
-      }),
-    });
-
-    const data = await response.json();
-    window.location.href = data.checkout_url;
-  } catch (error) {
-    console.error("Payment failed:", error);
-  }
-};
+  const makePayment = (item: { title: string; price: string }) => {
+    openPayChanguCheckout(
+      { title: item.title, price: item.price },
+      user?.email ? { email: user.email, firstName: user.email?.split("@")[0] } : undefined
+    );
+  };
 
   return (
     <div className="flex flex-col bg-neutral text-primary">
