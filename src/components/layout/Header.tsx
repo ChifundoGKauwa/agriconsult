@@ -5,10 +5,10 @@ import { Button } from "@/src/components/ui/button";
 import { Container } from "@/src/components/ui/container";
 
 const navLinks = [
-  { href: "/#services", label: "Services" },
+  { href: "/about", label: "About" },
   { href: "/advertising", label: "Advertising" },
   { href: "/consulting", label: "Consulting" },
-  { href: "/consulting#qa", label: "Q&A" },
+  { href: "/qa", label: "FAQ" },
 ];
 
 export default function Header() {
@@ -30,10 +30,9 @@ export default function Header() {
         </nav>
 
         <div className="hidden items-center gap-4 text-xs uppercase tracking-[0.2em] lg:flex">
-          <a className="hover:text-primary" href="/login">Login</a>
-          <a href="/consulting">
+          <a href="/login">
             <Button size="sm" className="bg-accent text-primary hover:bg-tertiary">
-              Schedule Consultation
+              Login
             </Button>
           </a>
         </div>
@@ -61,9 +60,8 @@ export default function Header() {
               </a>
             ))}
             <hr className="border-secondary/20" />
-            <a className="hover:text-primary" href="/login" onClick={() => setMenuOpen(false)}>Login</a>
-            <a href="/consulting" onClick={() => setMenuOpen(false)}>
-              <Button size="sm" className="w-full bg-accent text-primary hover:bg-tertiary">Schedule Consultation</Button>
+            <a href="/login" onClick={() => setMenuOpen(false)}>
+              <Button size="sm" className="w-full bg-accent text-primary hover:bg-tertiary">Login</Button>
             </a>
           </nav>
         </div>
