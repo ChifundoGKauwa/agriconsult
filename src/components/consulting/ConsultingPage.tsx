@@ -46,22 +46,8 @@ type Message = {
 
 const experts = [
   {
-    name: "Dr. Elias Vance",
-    role: "Senior Soil Pathologist",
-    rating: "4.9",
-    responses: "1,248 answers",
-  },
-  {
-    name: "Amara Phiri",
-    role: "Market Strategy Lead",
-    rating: "4.8",
-    responses: "980 answers",
-  },
-  {
-    name: "Tendai Moyo",
-    role: "Livestock Nutritionist",
-    rating: "4.9",
-    responses: "1,104 answers",
+    name: "Gabriel Jonathan",
+    role: "Agronomist & Crop Scientist",
   },
 ];
 
@@ -308,18 +294,9 @@ export default function ConsultingPage() {
                 <CardHeader>
                   <CardTitle className="text-base">{expert.name}</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2 text-sm text-secondary">
+                <CardContent className="text-sm text-secondary">
                   <p>{expert.role}</p>
-                  <div className="flex items-center justify-between text-xs">
-                    <span>{expert.rating} rating</span>
-                    <span>{expert.responses}</span>
-                  </div>
                 </CardContent>
-                <CardFooter>
-                  <Button variant="ghost" className="px-0">
-                    Chat with expert
-                  </Button>
-                </CardFooter>
               </Card>
             ))}
           </div>

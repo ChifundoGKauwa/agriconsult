@@ -213,26 +213,12 @@ export default function LandingPage() {
               <CardHeader>
                 <CardTitle>Strategic Advertising</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6 text-sm text-neutral/85">
+              <CardContent className="text-sm text-neutral/85">
                 <p>
                   Position your agricultural products where it matters most.
                   Our network reaches high-intent buyers, commercial farms, and
                   regional distributors across the continent.
                 </p>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between border-t border-white/20 pt-4">
-                    <span className="text-xs uppercase tracking-[0.3em] text-neutral/70">
-                      Annual Reach
-                    </span>
-                    <span className="text-lg font-semibold text-accent">15M+</span>
-                  </div>
-                  <div className="flex items-center justify-between border-t border-white/20 pt-4">
-                    <span className="text-xs uppercase tracking-[0.3em] text-neutral/70">
-                      Retained Clients
-                    </span>
-                    <span className="text-lg font-semibold text-accent">92%</span>
-                  </div>
-                </div>
               </CardContent>
             </Card>
           </div>
