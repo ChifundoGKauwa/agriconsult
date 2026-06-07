@@ -43,60 +43,6 @@ type CloudinaryUploadInfo = {
   secure_url: string;
 };
 
-const featuredCards = [
-  {
-    title: "Malawi Gold Hybrid Pigs",
-    subtitle: "Premium grade livestock",
-    price: "MWK 4,500,000",
-    image: "/pigs.png",
-  },
-  {
-    title: "Premium Grade A Maize",
-    subtitle: "Seasonal export lots",
-    price: "MWK 420,000",
-    image: "/maize.png",
-  },
-  {
-    title: "Organic Soya Beans",
-    subtitle: "High-protein harvest",
-    price: "MWK 145,000",
-    image: "/soya.png",
-  },
-  {
-    title: "Organic Beans",
-    subtitle: "Wholesale contract",
-    price: "MWK 112,500",
-    image: "/beans.png",
-  },
-];
-
-const listings = [
-  {
-    title: "Large White Breeding Gilts",
-    subtitle: "Certified healthy stock",
-    price: "MWK 120,500",
-    image: "/pigs.png",
-  },
-  {
-    title: "Bulk Yellow Maize",
-    subtitle: "High energy density",
-    price: "MWK 420,000",
-    image: "/maize.png",
-  },
-  {
-    title: "Non-GMO Soya Beans",
-    subtitle: "Cleaned and graded",
-    price: "MWK 145,000",
-    image: "/soya.png",
-  },
-  {
-    title: "Organic Beans Supply",
-    subtitle: "Sorted export lots",
-    price: "MWK 112,500",
-    image: "/beans.png",
-  },
-];
-
 export default function AdvertisingPage() {
   const [advertisements, setAdvertisements] = useState<Advertisement[]>([]);
   const [user, setUser] = useState<User | null>(null);
@@ -154,9 +100,7 @@ export default function AdvertisingPage() {
     [advertisements]
   );
 
-  const displayListings = marketplaceListings.length
-    ? marketplaceListings
-    : listings;
+  const displayListings = marketplaceListings;
 
   // Filtered listings based on search only
   const filteredListings = displayListings.filter((item) => {
