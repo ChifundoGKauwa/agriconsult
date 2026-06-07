@@ -18,6 +18,7 @@ import { db } from "@/src/lib/firebase";
 
 const IMAGES_COLLECTION = "images";
 const MESSAGES_COLLECTION = "messages";
+const REVIEWS_COLLECTION = "reviews";
 
 type Advertisement = {
   id: string;
@@ -54,30 +55,18 @@ const insights = [
   },
 ];
 
-const testimonials = [
-  {
-    name: "Chikondi M.",
-    role: "Tea Cooperative Lead",
-    quote:
-      "Our revenue projections are finally aligned with real data and disciplined marketing.",
-  },
-  {
-    name: "Tonderai K.",
-    role: "Irrigation SME",
-    quote:
-      "The consulting roadmap helped us secure partners and sell out two product batches.",
-  },
-  {
-    name: "Lilian A.",
-    role: "Agri-Exporter",
-    quote:
-      "AgroConsult gave us pricing clarity and market entry options within weeks.",
-  },
-];
+type Review = {
+  id: string;
+  name: string;
+  business: string;
+  review: string;
+  createdAt?: Timestamp;
+};
 
 export default function LandingPage() {
   const [marketAds, setMarketAds] = useState<Advertisement[]>([]);
   const [frequentQuestions, setFrequentQuestions] = useState<Message[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Fetch first 4 ads from Firestore
@@ -135,6 +124,24 @@ export default function LandingPage() {
       setFrequentQuestions(frequent);
     });
 
+    return unsubscribe;
+  }, []);
+
+  // Fetch reviews
+  useEffect(() => {
+    const q = query(
+      collection(db, REVIEWS_COLLECTION),
+      orderBy("createdAt", "desc"),
+      limit(6)
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setReviews(
+        snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...(doc.data() as Omit<Review, "id">),
+        }))
+      );
+    });
     return unsubscribe;
   }, []);
 
@@ -403,9 +410,7 @@ export default function LandingPage() {
         <Container className="space-y-10">
           <div className="space-y-4">
             <Badge>Frequently Asked Questions</Badge>
-            <h2 className="text-3xl font-semibold">
-              Trusted by producers, exporters, and agri-innovators.
-            </h2>
+            <h2 className="text-3xl font-semibold">Questions from the community.</h2>
           </div>
           <div className="grid gap-6 md:grid-cols-3">
             {frequentQuestions.length > 0 ? (
@@ -413,30 +418,39 @@ export default function LandingPage() {
                 <Card key={q.id} className="border-secondary/20">
                   <CardContent className="space-y-4">
                     <p className="text-sm text-secondary">&ldquo;{q.message}&rdquo;</p>
+                    <p className="text-xs text-secondary/80">Asked by {q.displayName}</p>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <p className="col-span-full text-sm text-secondary">No frequently asked questions yet. Be the first to ask on the <Link href="/consulting" className="text-accent">consulting page</Link>.</p>
+            )}
+          </div>
+        </Container>
+      </section>
+
+      {/* Reviews */}
+      <section className="py-16">
+        <Container className="space-y-10">
+          <div className="space-y-4">
+            <Badge>Reviews</Badge>
+            <h2 className="text-3xl font-semibold">What our users say.</h2>
+          </div>
+          <div className="grid gap-6 md:grid-cols-3">
+            {reviews.length > 0 ? (
+              reviews.map((r) => (
+                <Card key={r.id} className="border-secondary/20">
+                  <CardContent className="space-y-3">
+                    <p className="text-sm text-secondary">&ldquo;{r.review}&rdquo;</p>
                     <div>
-                      <p className="text-xs text-secondary/80">
-                        Asked by {q.displayName}
-                      </p>
+                      <p className="text-sm font-semibold text-primary">{r.name}</p>
+                      <p className="text-xs text-secondary/80">{r.business}</p>
                     </div>
                   </CardContent>
                 </Card>
               ))
             ) : (
-              testimonials.map((testimonial) => (
-                <Card key={testimonial.name} className="border-secondary/20">
-                  <CardContent className="space-y-4">
-                    <p className="text-sm text-secondary">&ldquo;{testimonial.quote}&rdquo;</p>
-                    <div>
-                      <p className="text-sm font-semibold text-primary">
-                        {testimonial.name}
-                      </p>
-                      <p className="text-xs text-secondary/80">
-                        {testimonial.role}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
+              <p className="col-span-full text-sm text-secondary">No reviews yet.</p>
             )}
           </div>
         </Container>
