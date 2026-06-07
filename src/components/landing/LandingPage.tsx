@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { collection, onSnapshot, orderBy, query, limit, type Timestamp } from "firebase/firestore";
+import { addDoc, collection, onSnapshot, orderBy, query, limit, serverTimestamp, type Timestamp } from "firebase/firestore";
 import { Badge } from "@/src/components/ui/badge";
 import { Button } from "@/src/components/ui/button";
 import {
@@ -68,6 +68,30 @@ export default function LandingPage() {
   const [frequentQuestions, setFrequentQuestions] = useState<Message[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
+  const [reviewName, setReviewName] = useState("");
+  const [reviewBusiness, setReviewBusiness] = useState("");
+  const [reviewText, setReviewText] = useState("");
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+
+  const handleSubmitReview = async () => {
+    if (!reviewName.trim() || !reviewText.trim()) return;
+    setIsSubmittingReview(true);
+    try {
+      await addDoc(collection(db, REVIEWS_COLLECTION), {
+        name: reviewName.trim(),
+        business: reviewBusiness.trim() || "Customer",
+        review: reviewText.trim(),
+        createdAt: serverTimestamp(),
+      });
+      setReviewName("");
+      setReviewBusiness("");
+      setReviewText("");
+    } catch (err) {
+      console.error("Failed to submit review:", err);
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
 
   // Fetch first 4 ads from Firestore
   useEffect(() => {
@@ -453,6 +477,38 @@ export default function LandingPage() {
               <p className="col-span-full text-sm text-secondary">No reviews yet.</p>
             )}
           </div>
+
+          {/* Submit Review */}
+          <Card className="mx-auto max-w-lg border-secondary/20">
+            <CardHeader>
+              <CardTitle className="text-base">Leave a Review</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <input
+                type="text" value={reviewName} onChange={(e) => setReviewName(e.target.value)}
+                placeholder="Your name"
+                className="h-10 w-full rounded-xl border border-secondary/20 bg-white px-3 text-sm outline-none focus:border-primary"
+              />
+              <input
+                type="text" value={reviewBusiness} onChange={(e) => setReviewBusiness(e.target.value)}
+                placeholder="Your business / position (optional)"
+                className="h-10 w-full rounded-xl border border-secondary/20 bg-white px-3 text-sm outline-none focus:border-primary"
+              />
+              <textarea
+                value={reviewText} onChange={(e) => setReviewText(e.target.value)}
+                placeholder="Write your review..."
+                rows={3}
+                className="w-full rounded-xl border border-secondary/20 bg-white px-3 py-2 text-sm outline-none focus:border-primary"
+              />
+              <Button
+                className="w-full bg-accent text-primary hover:bg-tertiary"
+                onClick={handleSubmitReview}
+                disabled={isSubmittingReview || !reviewName || !reviewText}
+              >
+                {isSubmittingReview ? "Submitting..." : "Submit Review"}
+              </Button>
+            </CardContent>
+          </Card>
         </Container>
       </section>
     </div>
